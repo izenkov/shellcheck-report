@@ -3,7 +3,7 @@
 Reports *.sh shellcheck issues in folder and all subfolders
 
 > shellcheck-report scans all *.sh script files in
-> cpecified folder and all it's subfolders recursivly.
+> specified folder and all it's subfolders recursively.
 > It then calls shellcheck utility on script content and
 > outputs a number of issues found.
 
@@ -43,7 +43,7 @@ shellcheck-report ~/dev
 ## Example report
 
 ```sh
-shellcheck-report 1.0 Jan 1, 2022
+shellcheck-report 1.0.1 Jan 1, 2022
 
 re2c-2.2
 
