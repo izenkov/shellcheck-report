@@ -1,0 +1,67 @@
+#!/bin/sh
+
+BIN_FILE='shellcheck-report'
+BIN_PATH="/usr/local/bin/${BIN_FILE}"
+RUN_VERBOSE='N'
+
+err() {
+  >&2 echo "$*"
+}
+
+msg() {
+  [ "$RUN_VERBOSE" = 'N' ] || echo "$@"
+}
+
+exit_failure() {
+  [ $# -ne 0 ] && err "$@"
+  exit 1
+}
+
+exit_success() {
+  [ $# -ne 0 ] && echo "$@"
+  exit 0;
+}
+
+assert_file() {
+  [ -f "$1" ] || exit_failure "'$1' not found"
+}
+
+assert_installed() {
+  if [ -f "$BIN_PATH" ]; then
+    msg "'${BIN_PATH}' file found"
+    exit_success "'${BIN_FILE}' already installed"
+  fi
+}
+
+usage() {
+  if [ -f ./${BIN_FILE} ]; then
+    echo "${BIN_FILE} $(./${BIN_FILE} -v) installer"
+  else
+    echo "${BIN_FILE} installer"
+  fi
+  echo 'Usage: install'
+  echo '       install -v (verbose)'
+  echo '       install -h'
+}
+
+main() {
+  if [ $# -ne 0 ]; then
+    case $1 in
+      -v) RUN_VERBOSE='Y';;
+      -h) { usage; return; };;
+       *) exit_failure "Unknown option: '$1'"
+    esac
+  fi
+
+  assert_file "./${BIN_FILE}"
+  assert_installed
+
+  msg "Installing '${BIN_FILE}' ..."
+  msg "Coping './${BIN_FILE}' to '${BIN_PATH}' ..."
+  sudo cp -T "./${BIN_FILE}" "${BIN_PATH}"
+
+  [ -f "$BIN_PATH" ] || exit_failure "'${BIN_FILE}' install failure"
+}
+
+main "$@"
+

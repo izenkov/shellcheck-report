@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+#
+# Reports *.sh shellcheck issues in folder and all subfolders
+# Author: Igor P. Zenkov
+# Dependency: https://www.shellcheck.net CLI
+#
+
+declare -r SCRIPT_NAME="${0##*/}"
+declare -r SCRIPT_VERSION='1.0.1 Jan 1, 2022'
+declare -r FGLOB='*.sh'
+
+function bold { echo -e "\e[96m$*\e[0m"; }
+function err  { >&2 echo -e "$SCRIPT_NAME: \e[91m$*\e[0m"; }
+function halt { err "$@"; exit 1; }
+
+function assert_shellcheck {
+  shellcheck --help > /dev/null 2>&1 || halt 'shellcheck (www.shellcheck.net) not found'
+}
+
+function assert_dir {
+  [[ -d $1 ]] || halt "folder '$1' not found"
+}
+
+function assert_cd {
+  cd "$1" > /dev/null || halt "unable to chage folder to '$1'"
+}
+
+function report {
+  assert_shellcheck
+  local -a scripts
+  readarray -t scripts < <(find . -name "$FGLOB")
+  local scr; local -i cnt total=0
+  bold "$SCRIPT_NAME $SCRIPT_VERSION"
+  echo
+  echo "${PWD##*/}"
+  echo
+  for scr in "${scripts[@]}"; do
+    cnt="$(shellcheck -f gcc "$scr" | wc -l)"
+    printf '%3d %s\n' "$cnt" "$scr"
+    ((total+=cnt))
+  done
+  echo
+  echo "$total issues in ${#scripts[@]} $FGLOB files"
+}
+
+function report_dir {
+  assert_dir "$1";
+  assert_cd "$1"
+  report
+  assert_cd '-'
+}
+
+function usage {
+  bold "$SCRIPT_NAME $SCRIPT_VERSION"
+  echo
+  echo " Usage: $SCRIPT_NAME <dir>"
+  echo "        $SCRIPT_NAME -v"
+  echo "        $SCRIPT_NAME -h"
+  echo
+  echo ' Where: <dir>             Report folder'
+  echo '        -v | --version    Version'
+  echo '        -h | --help       Help'
+  echo
+  echo "  Like: $SCRIPT_NAME ."
+  echo "        $SCRIPT_NAME ./git"
+  echo "        $SCRIPT_NAME ~/dev"
+  echo
+}
+
+function one_arg {
+  case $1 in
+   -h|--help) usage;;
+   -v|--version) echo "$SCRIPT_VERSION";;
+   -*) err "unknown argument '$1'";;
+    *) report_dir "$@";;
+  esac
+}
+
+function main {
+  case $# in
+    0) usage;;
+    1) one_arg "$@";;
+    *) err 'too many arguments';;
+  esac
+}
+
+main "$@"
+
