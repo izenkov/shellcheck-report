@@ -58,7 +58,7 @@ main() {
 
   msg "Installing '${BIN_FILE}' ..."
   msg "Coping './${BIN_FILE}' to '${BIN_PATH}' ..."
-  sudo cp -T "./${BIN_FILE}" "${BIN_PATH}"
+  sudo cp "./${BIN_FILE}" "${BIN_PATH}"
 
   [ -f "$BIN_PATH" ] || exit_failure "'${BIN_FILE}' install failure"
 }
