@@ -83,6 +83,7 @@ function one_arg {
 }
 
 function main {
+  assert_bash
   case $# in
     0) usage;;
     1) one_arg "$@";;
