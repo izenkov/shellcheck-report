@@ -9,13 +9,40 @@ Reports *.sh shellcheck issues in folder and all subfolders
 
 ## Dependencies
 
-[shellcheck](https://www.shellcheck.net)
+- [shellcheck](https://www.shellcheck.net)
+- [Bash](https://www.gnu.org/software/bash) 4.4.* or newer
 
 ## Install / Uninstall
+
+### Linux, macOS
 
 ```sh
 ./install
 ./uninstall
+```
+
+On macOS, if you are still running Bash 3.2 written in 2007 shellcheck-report will not run. You have two options. The recomended way would be upgrading to the latest Bash version using [Homebrew](https://brew.sh) or [Macports](https://www.macports.org) package managers. Second option would be backporting shellcheck-report to Bash 3.2 or porting to a different shell (zsh for example). Here is the [link](https://github.com/izenkov/free-the-bash) to Homebrew based utility for upgrading macOS Bash to the latest version and setting upgraded Bash as default login shell.
+
+### Windows Git Bash Terminal
+
+```cmd
+rem Execute from Command Prompt running as Administrator
+copy shellcheck-report "%ProgramFiles%\Git\usr\bin"
+```
+
+After that shellcheck-report will be visible in /usr/bin folder inside Git Bash Terminal. And because /usr/bin is in $PATH shellcheck-report can be executed without specifing full path name.
+
+If you get an error
+
+```sh
+shellcheck (www.shellcheck.net) not found
+```
+
+Download [shellcheck.exe](https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.zip) and drop it into the same location.
+
+```cmd
+rem Execute from Command Prompt running as Administrator
+copy shellcheck.exe "%ProgramFiles%\Git\usr\bin"
 ```
 
 ## Usage
@@ -93,7 +120,7 @@ re2c-2.2
 
 ## References
 
-[Google Shell Guide](https://google.github.io/styleguide/shellguide.html)
+- [Google Shell Guide](https://google.github.io/styleguide/shellguide.html)
 
 ## License
 

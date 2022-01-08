@@ -13,6 +13,12 @@ function bold { echo -e "\e[96m$*\e[0m"; }
 function err  { >&2 echo -e "$SCRIPT_NAME: \e[91m$*\e[0m"; }
 function halt { err "$@"; exit 1; }
 
+function assert_bash {
+  case $BASH_VERSION in
+    3.*) halt "Old Bash version $BASH_VERSION detected, please upgrade to a version 4.4 or newer"
+  esac
+}
+
 function assert_shellcheck {
   shellcheck --help > /dev/null 2>&1 || halt 'shellcheck (www.shellcheck.net) not found'
 }
