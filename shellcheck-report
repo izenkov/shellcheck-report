@@ -41,7 +41,7 @@ function report {
   echo "${PWD##*/}"
   echo
   for scr in "${scripts[@]}"; do
-    cnt="$(shellcheck -f gcc "$scr" | wc -l)"
+    cnt="$(shellcheck -x -f gcc "$scr" | wc -l)"
     printf '%3d %s\n' "$cnt" "$scr"
     ((total+=cnt))
   done
