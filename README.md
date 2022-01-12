@@ -10,7 +10,7 @@ Reports *.sh shellcheck issues in folder and all subfolders
 ## Dependencies
 
 - [shellcheck](https://www.shellcheck.net)
-- [Bash](https://www.gnu.org/software/bash) 4.4.* or newer
+- [Bash](https://www.gnu.org/software/bash) 4.3.* or newer
 
 ## Install / Uninstall
 
@@ -59,12 +59,36 @@ shellcheck-report -h
 shellcheck-report -v
 ```
 
-#### Run shellcheck report on a folder
+#### Scan folder
 
 ```sh
 shellcheck-report .
 shellcheck-report ./scripts
 shellcheck-report ~/dev
+```
+
+#### Scan folder, option -0 (exclude files with 0 errors)
+
+```sh
+shellcheck-report -0 .
+shellcheck-report -0 ./scripts
+shellcheck-report -0 ~/dev
+```
+
+#### Scan folder, option -c (print total errors found)
+
+```sh
+shellcheck-report -c .
+shellcheck-report -c ./scripts
+shellcheck-report -c ~/dev
+```
+
+#### Scan folder, option -q (quiet, return exit code)
+
+```sh
+shellcheck-report -q .
+shellcheck-report -q ./scripts
+shellcheck-report -q ~/dev
 ```
 
 ## Example report
@@ -117,6 +141,12 @@ re2c-2.2
 
 1599 issues in 40 *.sh files
 ```
+
+## Exit codes (-q option)
+
+- 0: All files successfully scanned with no issues.
+- 1: All files successfully scanned with some issues.
+- 3: Bad syntax or options
 
 ## References
 
