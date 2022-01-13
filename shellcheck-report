@@ -14,9 +14,8 @@ function err  { >&2 echo -e "$SCRIPT_NAME: \e[91m$*\e[0m"; }
 function halt { err "$@"; exit 3; }
 
 function assert_bash {
-  case $BASH_VERSION in
-    3.*) halt "Old Bash version $BASH_VERSION detected, please upgrade to a version 4.3 or newer"
-  esac
+  local -r major="${BASH_VERSION:0:1}"
+  ((major>=4)) || halt "Old Bash version $BASH_VERSION detected, please upgrade to a version 4.3 or newer"
 }
 
 function assert_shellcheck {
@@ -134,25 +133,32 @@ function usage {
   echo "        $SCRIPT_NAME -h"
   echo
   echo ' Where: <dir>  Folder to scan'
-  echo '        -0     Exclide 0 errors scripts'
+  echo '        -0     Exclude 0 errors scripts'
   echo '        -c     Print error count'
   echo '        -q     Quiet, return exit code'
   echo '        -v     Version'
   echo '        -h     Help'
   echo
-  echo "  Like: $SCRIPT_NAME ."
+  (($#==0)) && return
+  echo " Like:  $SCRIPT_NAME ."
   echo "        $SCRIPT_NAME -0 ."
   echo "        $SCRIPT_NAME -c ."
   echo "        $SCRIPT_NAME -q ."
   echo "        $SCRIPT_NAME ./git"
   echo "        $SCRIPT_NAME ~/dev"
   echo
+  echo ' Exit codes (-q option)'
+  echo
+  echo '  0: Folder scan completed with no issues'
+  echo '  1: Folder scan completed with some issues'
+  echo '  3: Bad syntax or options'
+  echo
 }
 
 function one_arg {
   case $1 in
     -0|-c|-q) halt 'missing <dir> argument';;
-    -h) usage;;
+    -h) usage '-h';;
     -v) echo "$SCRIPT_VERSION";;
     -*) halt "unknown argument '$1'";;
      *) report_dir "$1";;
