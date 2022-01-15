@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034
 #
 # Reports *.sh shellcheck issues in folder and all subfolders
 # Author: Igor P. Zenkov
@@ -6,16 +7,17 @@
 #
 
 declare -r SCRIPT_NAME="${0##*/}"
-declare -r SCRIPT_VERSION='1.0.2 Jan 11, 2022'
+declare -r SCRIPT_VERSION='1.0.3 Jan 15, 2022'
 declare -r FGLOB='*.sh'
 
-function bold { echo -e "\e[96m$*\e[0m"; }
-function err  { >&2 echo -e "$SCRIPT_NAME: \e[91m$*\e[0m"; }
+function bold { printf '\e[96m%s\e[0m\n' "$*"; }
+function err  { >&2 printf "%s: \e[91m%s\e[0m\n" "$SCRIPT_NAME" "$*"; }
 function halt { err "$@"; exit 3; }
 
 function assert_bash {
-  local -r major="${BASH_VERSION:0:1}"
-  ((major>=4)) || halt "Old Bash version $BASH_VERSION detected, please upgrade to a version 4.3 or newer"
+  local -r maj_exp=$1 # expected
+  local -r maj_act="${BASH_VERSION:0:1}" # actual
+  ((maj_act>=maj_exp)) || halt "Bash $BASH_VERSION detected, please upgrade to version $maj_exp or newer"
 }
 
 function assert_shellcheck {
@@ -27,7 +29,19 @@ function assert_dir {
 }
 
 function assert_cd {
-  cd "$1" > /dev/null || halt "unable to chage folder to '$1'"
+  cd "$1" || halt "unable to chage folder to '$1'"
+}
+
+function set_parent_dir {
+  local -n r_var=$1
+  local -r dir=$PWD
+  assert_dir "$2";
+  assert_cd  "$2"
+  case $PWD in
+    '/') r_var='/';;
+      *) r_var=${PWD##*/};;
+  esac
+  assert_cd "$dir"
 }
 
 function check_file {
@@ -36,16 +50,17 @@ function check_file {
 
 # report all
 function report_a {
-  local -r dir=$1
+  local -r dir=$1 pdir=$2
   local -a scripts
-  readarray -t scripts < <(find . -name "$FGLOB")
+  readarray -t scripts < <(find "$dir" -name "$FGLOB")
   local scr; local -i cnt total=0
   bold "$SCRIPT_NAME $SCRIPT_VERSION"
   echo
-  echo "${PWD##*/}"
+  echo "$pdir"
   echo
   for scr in "${scripts[@]}"; do
-    cnt="$(check_file "$scr")"
+    [[ -f $scr ]] || continue
+    cnt=$(check_file "$scr")
     printf '%3d %s\n' "$cnt" "$scr"
     ((total+=cnt))
   done
@@ -55,16 +70,17 @@ function report_a {
 
 # report all excluding scripts with 0 errors
 function report_0 {
-  local -r dir=$1
+  local -r dir=$1 pdir=$2
   local -a scripts
-  readarray -t scripts < <(find . -name "$FGLOB")
+  readarray -t scripts < <(find "$dir" -name "$FGLOB")
   local scr; local -i cnt total=0 errcnt=0
   bold "$SCRIPT_NAME $SCRIPT_VERSION"
   echo
-  echo "${PWD##*/}"
+  echo "$pdir"
   echo
   for scr in "${scripts[@]}"; do
-    cnt="$(check_file "$scr")"
+    [[ -f $scr ]] || continue
+    cnt=$(check_file "$scr")
     if ((cnt!=0)); then
       printf '%3d %s\n' "$cnt" "$scr"
       ((errcnt++))
@@ -77,12 +93,13 @@ function report_0 {
 
 # report total error count
 function report_c {
-  local -r dir=$1
+  local -r dir=$1 pdir=$2
   local -a scripts
-  readarray -t scripts < <(find . -name "$FGLOB")
+  readarray -t scripts < <(find "$dir" -name "$FGLOB")
   local scr; local -i cnt total=0
   for scr in "${scripts[@]}"; do
-    cnt="$(check_file "$scr")"
+    [[ -f $scr ]] || continue
+    cnt=$(check_file "$scr")
     ((total+=cnt))
   done
   echo "$total"
@@ -90,12 +107,13 @@ function report_c {
 
 # quiet mode, return exit code
 function report_q {
-  local -r dir=$1
+  local -r dir=$1 pdir=$2
   local -a scripts
-  readarray -t scripts < <(find . -name "$FGLOB")
+  readarray -t scripts < <(find "$dir" -name "$FGLOB")
   local scr; local -i cnt total=0
   for scr in "${scripts[@]}"; do
-    cnt="$(shellcheck -x -f gcc "$scr" | wc -l)"
+    [[ -f $scr ]] || continue
+    cnt=$(check_file "$scr")
     ((total+=cnt))
   done
   ((total==0)) || exit 1
@@ -105,21 +123,14 @@ function report {
   assert_shellcheck
   local -r dir=$1
   local -r opt=$2 # -0, -c, or -q
-  local -a scripts
-  readarray -t scripts < <(find . -name "$FGLOB")
+  local pdir
+  set_parent_dir pdir "$dir"
   case $opt in
-    -0) report_0 "$dir";;
-    -c) report_c "$dir";;
-    -q) report_q "$dir";;
-     *) report_a "$dir";;
+    -0) report_0 "$dir" "$pdir";;
+    -c) report_c "$dir" "$pdir";;
+    -q) report_q "$dir" "$pdir";;
+     *) report_a "$dir" "$pdir";;
   esac
-}
-
-function report_dir {
-  assert_dir "$1";
-  assert_cd  "$1"
-  report "$@"
-  assert_cd '-'
 }
 
 function usage {
@@ -149,8 +160,8 @@ function usage {
   echo
   echo ' Exit codes (-q option)'
   echo
-  echo '  0: Folder scan completed with no issues'
-  echo '  1: Folder scan completed with some issues'
+  echo '  0: Folder scan completed, no issues found'
+  echo '  1: Folder scan completed, issues found'
   echo '  3: Bad syntax or options'
   echo
 }
@@ -161,19 +172,19 @@ function one_arg {
     -h) usage '-h';;
     -v) echo "$SCRIPT_VERSION";;
     -*) halt "unknown argument '$1'";;
-     *) report_dir "$1";;
+     *) report "$1";;
   esac
 }
 
 function two_arg {
   case $1 in
-    -0|-c|-q) report_dir "$2" "$1";; # reverse arguments: <dir> <opt>
+    -0|-c|-q) report "$2" "$1";; # reverse arguments: <dir> <opt>
     *) halt "unknown argument '$1'";;
   esac
 }
 
 function main {
-  assert_bash
+  assert_bash 4
   case $# in
     0) usage;;
     1) one_arg "$@";;
