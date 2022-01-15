@@ -7,7 +7,7 @@
 #
 
 declare -r SCRIPT_NAME="${0##*/}"
-declare -r SCRIPT_VERSION='1.0.3 Jan 15, 2022'
+declare -r SCRIPT_VERSION='1.0.4 Jan 15, 2022'
 declare -r FGLOB='*.sh'
 
 function bold { printf '\e[96m%s\e[0m\n' "$*"; }
