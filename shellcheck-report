@@ -52,14 +52,13 @@ function check_file {
 function report_a {
   local -r dir=$1 pdir=$2
   local -a scripts
-  readarray -t scripts < <(find "$dir" -name "$FGLOB")
+  readarray -t scripts < <(find "$dir" -name "$FGLOB" -type f)
   local scr; local -i cnt total=0
   bold "$SCRIPT_NAME $SCRIPT_VERSION"
   echo
   echo "$pdir"
   echo
   for scr in "${scripts[@]}"; do
-    [[ -f $scr ]] || continue
     cnt=$(check_file "$scr")
     printf '%3d %s\n' "$cnt" "$scr"
     ((total+=cnt))
@@ -72,14 +71,13 @@ function report_a {
 function report_0 {
   local -r dir=$1 pdir=$2
   local -a scripts
-  readarray -t scripts < <(find "$dir" -name "$FGLOB")
+  readarray -t scripts < <(find "$dir" -name "$FGLOB" -type f)
   local scr; local -i cnt total=0 errcnt=0
   bold "$SCRIPT_NAME $SCRIPT_VERSION"
   echo
   echo "$pdir"
   echo
   for scr in "${scripts[@]}"; do
-    [[ -f $scr ]] || continue
     cnt=$(check_file "$scr")
     if ((cnt!=0)); then
       printf '%3d %s\n' "$cnt" "$scr"
@@ -95,10 +93,9 @@ function report_0 {
 function report_c {
   local -r dir=$1 pdir=$2
   local -a scripts
-  readarray -t scripts < <(find "$dir" -name "$FGLOB")
+  readarray -t scripts < <(find "$dir" -name "$FGLOB" -type f)
   local scr; local -i cnt total=0
   for scr in "${scripts[@]}"; do
-    [[ -f $scr ]] || continue
     cnt=$(check_file "$scr")
     ((total+=cnt))
   done
@@ -109,10 +106,9 @@ function report_c {
 function report_q {
   local -r dir=$1 pdir=$2
   local -a scripts
-  readarray -t scripts < <(find "$dir" -name "$FGLOB")
+  readarray -t scripts < <(find "$dir" -name "$FGLOB" -type f)
   local scr; local -i cnt total=0
   for scr in "${scripts[@]}"; do
-    [[ -f $scr ]] || continue
     cnt=$(check_file "$scr")
     ((total+=cnt))
   done
