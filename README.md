@@ -151,6 +151,7 @@ re2c-2.2
 ## References
 
 - [Google Shell Guide](https://google.github.io/styleguide/shellguide.html)
+- [POSIX.1-2017 (Shell)](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html)
 
 ## License
 
