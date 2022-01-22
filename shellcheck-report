@@ -7,8 +7,9 @@
 #
 
 declare -r SCRIPT_NAME="${0##*/}"
-declare -r SCRIPT_VERSION='1.0.4 Jan 15, 2022'
+declare -r SCRIPT_VERSION='1.0.5 Jan 22, 2022'
 declare -r FGLOB='*.sh'
+declare -r MAXDEPTH=64
 
 function bold { printf '\e[96m%s\e[0m\n' "$*"; }
 function err  { >&2 printf "%s: \e[91m%s\e[0m\n" "$SCRIPT_NAME" "$*"; }
@@ -16,7 +17,7 @@ function halt { err "$@"; exit 3; }
 
 function assert_bash {
   local -r maj_exp=$1 # expected
-  local -r maj_act="${BASH_VERSION:0:1}" # actual
+  local -r maj_act="${BASH_VERSINFO[0]}" # actual
   ((maj_act>=maj_exp)) || halt "Bash $BASH_VERSION detected, please upgrade to version $maj_exp or newer"
 }
 
@@ -32,6 +33,10 @@ function assert_cd {
   cd "$1" || halt "unable to chage folder to '$1'"
 }
 
+function assert_int {
+  [[ "$1" =~ ^[0-9]+$ ]] || halt "'$1' is not a non-negative integer"
+}
+
 function set_parent_dir {
   local -n r_var=$1
   local -r dir=$PWD
@@ -44,15 +49,28 @@ function set_parent_dir {
   assert_cd "$dir"
 }
 
+# s=./:1 -> r_dir = ./ r_depth = 1
+function parse_dir {
+  local -n r_dir=$1 r_depth=$2
+  local -a arr
+  IFS=':' read -ra arr <<< "$3"
+  case ${#arr[@]} in
+    1) arr[1]=$MAXDEPTH;;
+    2) assert_int "${arr[1]}";;
+    *) halt "syntax error: $2";;
+  esac
+  r_dir=${arr[0]}; r_depth=${arr[1]};
+}
+
 function check_file {
   shellcheck -x -f gcc "$1" | wc -l
 }
 
 # report all
 function report_a {
-  local -r dir=$1 pdir=$2
+  local -r dir=$1 pdir=$2 depth=$3
   local -a scripts
-  readarray -t scripts < <(find "$dir" -name "$FGLOB" -type f)
+  readarray -t scripts < <(find "$dir" -maxdepth "$3" -name "$FGLOB" -type f)
   local scr; local -i cnt total=0
   bold "$SCRIPT_NAME $SCRIPT_VERSION"
   echo
@@ -69,9 +87,9 @@ function report_a {
 
 # report all excluding scripts with 0 errors
 function report_0 {
-  local -r dir=$1 pdir=$2
+  local -r dir=$1 pdir=$2 depth=$3
   local -a scripts
-  readarray -t scripts < <(find "$dir" -name "$FGLOB" -type f)
+  readarray -t scripts < <(find "$dir" -maxdepth "$3" -name "$FGLOB" -type f)
   local scr; local -i cnt total=0 errcnt=0
   bold "$SCRIPT_NAME $SCRIPT_VERSION"
   echo
@@ -91,9 +109,9 @@ function report_0 {
 
 # report total error count
 function report_c {
-  local -r dir=$1 pdir=$2
+  local -r dir=$1 pdir=$2 depth=$3
   local -a scripts
-  readarray -t scripts < <(find "$dir" -name "$FGLOB" -type f)
+  readarray -t scripts < <(find "$dir" -maxdepth "$3" -name "$FGLOB" -type f)
   local scr; local -i cnt total=0
   for scr in "${scripts[@]}"; do
     cnt=$(check_file "$scr")
@@ -104,9 +122,9 @@ function report_c {
 
 # quiet mode, return exit code
 function report_q {
-  local -r dir=$1 pdir=$2
+  local -r dir=$1 pdir=$2 depth=$3
   local -a scripts
-  readarray -t scripts < <(find "$dir" -name "$FGLOB" -type f)
+  readarray -t scripts < <(find "$dir" -maxdepth "$3" -name "$FGLOB" -type f)
   local scr; local -i cnt total=0
   for scr in "${scripts[@]}"; do
     cnt=$(check_file "$scr")
@@ -115,46 +133,54 @@ function report_q {
   ((total==0)) || exit 1
 }
 
+# $1 dir, $2 options -0, -c, or -q
 function report {
   assert_shellcheck
-  local -r dir=$1
-  local -r opt=$2 # -0, -c, or -q
-  local pdir
-  set_parent_dir pdir "$dir"
-  case $opt in
-    -0) report_0 "$dir" "$pdir";;
-    -c) report_c "$dir" "$pdir";;
-    -q) report_q "$dir" "$pdir";;
-     *) report_a "$dir" "$pdir";;
+  local dir depth pdir
+  parse_dir dir depth "$1"
+  set_parent_dir pdir  "$dir"
+  case $2 in
+    -0) report_0 "$dir" "$pdir" "$depth";;
+    -c) report_c "$dir" "$pdir" "$depth";;
+    -q) report_q "$dir" "$pdir" "$depth";;
+     *) report_a "$dir" "$pdir" "$depth";;
   esac
 }
 
 function usage {
   bold "$SCRIPT_NAME $SCRIPT_VERSION"
   echo
-  echo " Usage: $SCRIPT_NAME <dir>"
-  echo "        $SCRIPT_NAME -0 <dir>"
-  echo "        $SCRIPT_NAME -c <dir>"
-  echo "        $SCRIPT_NAME -q <dir>"
-  echo "        $SCRIPT_NAME -v"
-  echo "        $SCRIPT_NAME -h"
+  bold ' Usage:'
   echo
-  echo ' Where: <dir>  Folder to scan'
-  echo '        -0     Exclude 0 errors scripts'
-  echo '        -c     Print error count'
-  echo '        -q     Quiet, return exit code'
-  echo '        -v     Version'
-  echo '        -h     Help'
+  echo "  $SCRIPT_NAME <dir>[:<depth>]"
+  echo "  $SCRIPT_NAME -0 <dir>[:<depth>]"
+  echo "  $SCRIPT_NAME -c <dir>[:<depth>]"
+  echo "  $SCRIPT_NAME -q <dir>[:<depth>]"
+  echo "  $SCRIPT_NAME -v"
+  echo "  $SCRIPT_NAME -h"
+  echo
+  bold ' Where:'
+  echo
+  echo '  <dir>    Folder to scan'
+  echo "  <depth>  Scan depth (current folder: 1, default: $MAXDEPTH)"
+  echo '  -0       Exclude 0 errors scripts'
+  echo '  -c       Print error count'
+  echo '  -q       Quiet, return exit code'
+  echo '  -v       Version'
+  echo '  -h       Help'
   echo
   (($#==0)) && return
-  echo " Like:  $SCRIPT_NAME ."
-  echo "        $SCRIPT_NAME -0 ."
-  echo "        $SCRIPT_NAME -c ."
-  echo "        $SCRIPT_NAME -q ."
-  echo "        $SCRIPT_NAME ./git"
-  echo "        $SCRIPT_NAME ~/dev"
+  bold ' Like:'
   echo
-  echo ' Exit codes (-q option)'
+  echo "  $SCRIPT_NAME .        scan . folder"
+  echo "  $SCRIPT_NAME -0 .     scan . folder, exclude 0 errors scripts"
+  echo "  $SCRIPT_NAME -c .     scan . folder, print total error count"
+  echo "  $SCRIPT_NAME -q .     scan . folder, set exit code"
+  echo "  $SCRIPT_NAME ./git    scan ./git folder"
+  echo "  $SCRIPT_NAME ./git:1  scan ./git folder, one level deep"
+  echo "  $SCRIPT_NAME ~/dev:2  scan ~/dev folder, two levels deep"
+  echo
+  bold ' Exit codes (-q option)'
   echo
   echo '  0: Folder scan completed, no issues found'
   echo '  1: Folder scan completed, issues found'

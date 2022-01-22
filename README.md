@@ -47,6 +47,25 @@ copy shellcheck.exe "%ProgramFiles%\Git\usr\bin"
 
 ## Usage
 
+```sh
+shellcheck-report <dir>[:<depth>]
+shellcheck-report -0 <dir>[:<depth>]
+shellcheck-report -c <dir>[:<depth>]
+shellcheck-report -q <dir>[:<depth>]
+shellcheck-report -v
+shellcheck-report -h
+```
+
+Where:
+
+- **dir**    Folder to scan
+- **depth**  Scan depth (current folder: 1, default: 64)
+- **-0**     Exclude 0 errors scripts
+- **-c**     Print error count
+- **-q**     Quiet, return exit code
+- **-v**     Version
+- **-h**     Help
+
 #### Show help screen
 
 ```sh
@@ -65,6 +84,14 @@ shellcheck-report -v
 shellcheck-report .
 shellcheck-report ./scripts
 shellcheck-report ~/dev
+```
+
+#### Scan folder (non recursive)
+
+```sh
+shellcheck-report .:1
+shellcheck-report ./scripts:1
+shellcheck-report ~/dev:1
 ```
 
 #### Scan folder, option -0 (exclude files with 0 errors)
@@ -94,7 +121,7 @@ shellcheck-report -q ~/dev
 ## Example report
 
 ```sh
-shellcheck-report 1.0.1 Jan 1, 2022
+shellcheck-report 1.0.5 Jan 22, 2022
 
 re2c-2.2
 
